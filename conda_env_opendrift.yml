@@ -27,6 +27,7 @@ dependencies:
 - pytools
 - cartopy
 - ffmpeg
+- xarray
 - opendrift
 # Activate environment and install the following packages using pip:
 # $ conda activate gpuocean_parcels_opendrift
