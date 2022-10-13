@@ -132,3 +132,5 @@ dmypy.json
 *.nc
 *.pickle
 *.gif
+*.pdf
+*.png
