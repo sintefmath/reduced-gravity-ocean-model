@@ -206,7 +206,7 @@ def ncAnimation(source_url, nctype, t_range=[0, None], ROMS_upper_layer=None, RO
     elif nctype == "gpuocean-reduced_grav":
         t = ncfile["time"][:]
 
-        eta = ncfile["eta"]
+        eta = ncfile["eta"][:]
         hu  = ncfile["hu"][:]
         hv  = ncfile["hv"][:]
 
@@ -249,7 +249,7 @@ def ncAnimation(source_url, nctype, t_range=[0, None], ROMS_upper_layer=None, RO
                         ((1-s)*eta[j] + s*eta[k]), 
                         ((1-s)*hu[j]  + s*hu[k]), 
                         ((1-s)*hv[j]  + s*hv[k]), 
-                        (H_m+(1-s)*eta[j] + s*eta[k]), 
+                        H_m, 
                         dx, dy, 
                         t_now, 
                         red_grav_mode,
