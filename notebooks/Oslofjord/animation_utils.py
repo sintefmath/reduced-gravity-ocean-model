@@ -25,6 +25,9 @@ plt.rcParams["animation.html"] = "jshtml"
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
+from gpuocean.utils import NetCDFInitialization
+
+
 def plotSolution(fig, 
                  eta, hu, hv, h, dx, dy, 
                  t, red_grav_mode=False,
@@ -121,7 +124,7 @@ def plotSolution(fig,
                              cmap="Reds", 
                              vmin=0, vmax=1.0, 
                              extent=domain_extent)
-        quiv = ax[3].quiver(x,y,qu,qv, scale=1)
+        quiv = ax[3].quiver(x,y,qu,qv, scale=5)
         plt.axis('image')
         plt.title("velocity")
         divider2 = make_axes_locatable(ax[3])
@@ -163,7 +166,7 @@ def ncAnimation(source_url, nctype, t_range=[0, None], ROMS_upper_layer=None, RO
 
         H_m = np.ma.array(ncfile["h"][1:-1,1:-1], mask=[1-ncfile["mask_rho"][1:-1,1:-1]])
 
-        if ROMS_upper_layer is None:
+        if not ROMS_upper_layer:
             eta = np.ma.array(ncfile["zeta"][:,1:-1,1:-1], mask=len(t)*[1-ncfile["mask_rho"][1:-1,1:-1]])
             try:
                 u = np.ma.array( 0.5*(ncfile["ubar"][t_start:t_stop,1:-1,1:]+ncfile["ubar"][t_start:t_stop,1:-1,:-1]), mask=len(t)*[1-ncfile["mask_rho"][1:-1,1:-1]])
@@ -181,16 +184,28 @@ def ncAnimation(source_url, nctype, t_range=[0, None], ROMS_upper_layer=None, RO
         else:
             x0, x1 = ROMS_upper_layer_coord[0], ROMS_upper_layer_coord[1]
             y0, y1 = ROMS_upper_layer_coord[2], ROMS_upper_layer_coord[3]
-            u = 0.5*(ncfile["u"][t_start:t_stop,:,y0:y1,x0:x1]+ncfile["u"][t_start:t_stop,:,y0:y1,x0+1:x1+1])
-            v = 0.5*(ncfile["v"][t_start:t_stop,:,y0:y1,x0:x1]+ncfile["v"][t_start:t_stop,:,y0+1:y1+1,x0:x1])
-            
-            integrator = NetCDFInitialization.MLD_integrator(source_url, ROMS_upper_layer, x0=x0, x1=x1, y0=y0, y1=y1)
-            hu = np.ma.array(np.sum(integrator * u, axis=1), mask=len(t)*[1-ncfile["mask_rho"][y0:y1,x0:x1]])
-            hv = np.ma.array(np.sum(integrator * v, axis=1), mask=len(t)*[1-ncfile["mask_rho"][y0:y1,x0:x1]])
 
-            eta = np.ma.array(len(t)*[ROMS_upper_layer], mask=len(t)*[ROMS_upper_layer.mask])
             H_m = 0.0
+            eta = []
+            hu  = []
+            hv  = []
 
+            for t_idx in range(t_start, t_stop):
+
+                u = 0.5*(ncfile["u"][t_idx,:,y0:y1,x0:x1]+ncfile["u"][t_idx,:,y0:y1,x0+1:x1+1])
+                v = 0.5*(ncfile["v"][t_idx,:,y0:y1,x0:x1]+ncfile["v"][t_idx,:,y0+1:y1+1,x0:x1])
+
+                mld = NetCDFInitialization.MLD(source_url, 1024, min_mld=1.5, max_mld=40, x0=x0, x1=x1, y0=y0, y1=y1, t=t_idx)
+                integrator = NetCDFInitialization.MLD_integrator(source_url, mld, x0=x0, x1=x1, y0=y0, y1=y1)
+
+                eta.append( mld )
+                
+                hu.append( np.sum(integrator * u, axis=0) )
+                hv.append( np.sum(integrator * v, axis=0) )
+
+            eta = np.ma.array(eta, mask = len(t)*[1-ncfile["mask_rho"][y0:y1,x0:x1]])
+            hu  = np.ma.array(hu, mask = len(t)*[1-ncfile["mask_rho"][y0:y1,x0:x1]])
+            hv  = np.ma.array(hv, mask = len(t)*[1-ncfile["mask_rho"][y0:y1,x0:x1]])
             red_grav_mode = True
 
 
@@ -266,7 +281,12 @@ def ncAnimation(source_url, nctype, t_range=[0, None], ROMS_upper_layer=None, RO
     return anim
 
 
-from gpuocean.utils import NetCDFInitialization
+
+################################################################
+################################################################
+################################################################
+
+
 
 
 def plotMLD(fig, 
@@ -354,6 +374,12 @@ def mldAnimation(source_url, t_range=[0, None], ROMS_coord=[0,None,0,None], comm
     plt.close(fig)
     
     return anim
+
+
+
+################################################################
+################################################################
+################################################################
 
 
 
