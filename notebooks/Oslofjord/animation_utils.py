@@ -434,11 +434,11 @@ def densAnimation(source_url, y_cut, t_range=[0, None], ROMS_coord=[0,None,0,Non
         s_pot_densities_show = np.ma.array(np.zeros((s_pot_densities.shape[1],depth_show)))
         s_pot_densities_show[:,0] =  s_pot_densities[-1][:,y_cut]
         for d in range(1,depth_show):
-            dens_low = np.sum(NetCDFInitialization.MLD_integrator(source_url, np.ma.array(d*np.ones_like(mld),mask=False), t=t, x0=x0, x1=x1, y0=y0, y1=y1) * s_pot_densities, axis=0)
+            dens_low = np.sum(NetCDFInitialization.MLD_integrator(source_url, np.ma.array(d*np.ones((y1-y0,x1-x0)),mask=False), t=t, x0=x0, x1=x1, y0=y0, y1=y1) * s_pot_densities, axis=0)
             if d == 1:
                 dens_up = 0.0
             else:
-                dens_up  = np.sum(NetCDFInitialization.MLD_integrator(source_url, np.ma.array((d-1)*np.ones_like(mld),mask=False), t=t, x0=x0, x1=x1, y0=y0, y1=y1) * s_pot_densities, axis=0)
+                dens_up  = np.sum(NetCDFInitialization.MLD_integrator(source_url, np.ma.array((d-1)*np.ones((y1-y0,x1-x0)),mask=False), t=t, x0=x0, x1=x1, y0=y0, y1=y1) * s_pot_densities, axis=0)
             s_pot_densities_show[:,d] =  (dens_low - dens_up)[:,y_cut]
         s_pot_densities_show.mask = (s_pot_densities_show<1000.0)
     
