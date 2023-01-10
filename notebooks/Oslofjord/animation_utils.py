@@ -167,7 +167,7 @@ def ncAnimation(source_url, nctype, t_range=[0, None], ROMS_upper_layer=None, RO
         H_m = np.ma.array(ncfile["h"][1:-1,1:-1], mask=[1-ncfile["mask_rho"][1:-1,1:-1]])
 
         if not ROMS_upper_layer:
-            eta = np.ma.array(ncfile["zeta"][:,1:-1,1:-1], mask=len(t)*[1-ncfile["mask_rho"][1:-1,1:-1]])
+            eta = np.ma.array(ncfile["zeta"][t_start:t_stop,1:-1,1:-1], mask=len(t)*[1-ncfile["mask_rho"][1:-1,1:-1]])
             try:
                 u = np.ma.array( 0.5*(ncfile["ubar"][t_start:t_stop,1:-1,1:]+ncfile["ubar"][t_start:t_stop,1:-1,:-1]), mask=len(t)*[1-ncfile["mask_rho"][1:-1,1:-1]])
                 v = np.ma.array( 0.5*(ncfile["vbar"][t_start:t_stop,1:,1:-1]+ncfile["vbar"][t_start:t_stop,:-1,1:-1]), mask=len(t)*[1-ncfile["mask_rho"][1:-1,1:-1]])
