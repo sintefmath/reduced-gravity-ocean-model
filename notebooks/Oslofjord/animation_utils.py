@@ -48,7 +48,9 @@ def plotSolution(fig,
     x_plots = 4
     y_plots = 1
    
-    huv_label = ["hv","hu"]
+    labels = ["eta", "hv", "hu"]
+    if red_grav_mode:
+        labels = ["MLD","hv","hu"]
 
     # Prepare quiver
     u = hu/(h+eta)
@@ -71,16 +73,16 @@ def plotSolution(fig,
         ax = [None]*x_plots*y_plots
         sp = [None]*x_plots*y_plots
 
-        uv_cmap = plt.cm.coolwarm
+        uv_cmap = copy.copy(plt.cm.coolwarm)
         uv_cmap.set_bad("grey", alpha = 1.0)
         
-        h_cmap = plt.cm.coolwarm
+        h_cmap = copy.copy(plt.cm.coolwarm)
         h_cmap.set_bad("grey", alpha = 1.0)
         if red_grav_mode:
-            h_cmap = plt.cm.Blues_r
+            h_cmap = copy.copy(plt.cm.Blues_r)
             h_cmap.set_bad("grey", alpha = 1.0)
 
-        velo_cmap = plt.cm.Reds
+        velo_cmap = copy.copy(plt.cm.Reds)
         velo_cmap.set_bad("grey", alpha = 1.0)
 
         ax[0] = plt.subplot(y_plots, x_plots, 1)
@@ -89,7 +91,7 @@ def plotSolution(fig,
                              vmin=h_min, vmax=h_max, 
                              extent=domain_extent)
         plt.axis('image')
-        plt.title("MLD")
+        plt.title("$"+labels[0]+"$")
         divider0 = make_axes_locatable(ax[0])
         cax0 = divider0.append_axes('right', size='5%', pad=0.05)
         fig.colorbar(sp[0],cax=cax0)
@@ -101,7 +103,7 @@ def plotSolution(fig,
                             vmin=uv_min, vmax=uv_max, 
                             extent=domain_extent)
         plt.axis('image')
-        plt.title("$"+huv_label[0]+"$")
+        plt.title("$"+labels[1]+"$")
         divider1 = make_axes_locatable(ax[1])
         cax1 = divider1.append_axes('right', size='5%', pad=0.05)
         fig.colorbar(sp[1],cax=cax1)
@@ -114,7 +116,7 @@ def plotSolution(fig,
                              vmin=uv_min, vmax=uv_max, 
                              extent=domain_extent)
         plt.axis('image')
-        plt.title("$"+huv_label[1]+"$")
+        plt.title("$"+labels[2]+"$")
         divider2 = make_axes_locatable(ax[2])
         cax2 = divider2.append_axes('right', size='5%', pad=0.05)
         fig.colorbar(sp[2],cax=cax2)
