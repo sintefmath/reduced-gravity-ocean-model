@@ -34,7 +34,7 @@ def plotSolution(fig,
                  comment = "Oslo",
                  h_min=-0.25, h_max=0.25, 
                  uv_min=-5, uv_max=5,
-                 ax=None, sp=None, quiv=None):
+                 ax=None, sp=None, quiv=None, frequ=10):
 
 
     from datetime import timedelta
@@ -55,10 +55,10 @@ def plotSolution(fig,
     # Prepare quiver
     u = hu/(h+eta)
     v = hv/(h+eta)
-    velocity = np.sqrt(u*u + v*v)
+    velocity = np.ma.sqrt(u*u + v*v)
     
-    frequency_x = 10
-    frequency_y = 10
+    frequency_x = frequ
+    frequency_y = frequ
     x = np.arange(0, velocity.shape[1], frequency_x)*dx
     y = np.arange(0, velocity.shape[0], frequency_y)*dy
     qu = u[::frequency_y, ::frequency_x]
@@ -82,7 +82,7 @@ def plotSolution(fig,
             h_cmap = copy.copy(plt.cm.Blues_r)
             h_cmap.set_bad("grey", alpha = 1.0)
 
-        velo_cmap = copy.copy(plt.cm.Reds)
+        velo_cmap = copy.copy(plt.cm.Oranges)
         velo_cmap.set_bad("grey", alpha = 1.0)
 
         ax[0] = plt.subplot(y_plots, x_plots, 1)
