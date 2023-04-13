@@ -1,8 +1,8 @@
 # %% [markdown]
 # ```
-# This notebook sets up and runs a test case for analyzing Kelvin waves
-# Copyright (C) 2018 - 2022 SINTEF Digital
-# Copyright (C) 2018 - 2022 Norwegian Meteorological Institute
+# This script runs the baroclinic drifter ensemble
+# Copyright (C) 2022 - 2023 SINTEF Digital
+# Copyright (C) 2022 - 2023 Norwegian Meteorological Institute
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -91,7 +91,7 @@ x0, x1, y0, y1 = 5, dimX-5, 175, dimY-5
 # Simulation span: 6h!
 
 # %%
-t_start = 5*24
+t_start = 5*24# +20
 t_stop =  t_start + 6
 
 T = (t_stop-t_start)*3600  #Input
@@ -171,7 +171,7 @@ for runt in range(int(T/subt)):
 import pandas as pd 
 
 # %%
-baroclinic_wind_angles_degs = np.arange(35, 56, 5)
+baroclinic_wind_angles_degs = 45 + np.random.normal(0, 10, 5) # np.arange(35, 56, 2.5) # np.random.uniform(35, 55, 10)
 baroclinic_wind_samples = [None]*len(baroclinic_wind_angles_degs)
 
 for i in range(len(baroclinic_wind_angles_degs)):
@@ -180,7 +180,7 @@ for i in range(len(baroclinic_wind_angles_degs)):
 # %%
 # Mixed layer depth (MLD) 
 # Can be explored coupled or decoupled with the reduced gravity constant
-mld_dens_samples = np.arange(1022.5, 1024.6, 0.50)
+mld_dens_samples = np.arange(1022.5, 1024.6, 1.0) # np.random.uniform(1022.5, 1024.5, 5)
 mld_samples_data_args = [None]*len(mld_dens_samples)
 
 for i in range(len(mld_dens_samples)):
@@ -190,13 +190,13 @@ for i in range(len(mld_dens_samples)):
 
 
 # %%
-wind_stress_samples = np.arange(0.1, 0.51, 0.1)
+wind_stress_samples =  np.arange(0.1, 0.71, 0.2) # np.random.uniform(0.1, 0.5, 5) #
 
 # %%
-friction_samples = np.arange(0, 0.0051, 0.001)
+friction_samples =  np.arange(0, 0.0051, 0.001) # np.random.uniform(0, 0.005, 5) #
 
 # %%
-windage_samples = np.arange(0.0, 0.031, 0.005)
+windage_samples = np.maximum(0, np.random.normal(0.03, 0.015, 10)) # np.arange(0.0, 0.051, 0.005) # np.random.uniform(0, 0.03, 10) #
 
 # %% 
 file = open("figs/"+timestamp+"/log.txt", 'w')
@@ -315,6 +315,7 @@ for d in range(len(crossprod_drifters)):
 
 # %%
 for bc in range(len(baroclinic_sims)):
+    print(bc, "of ", len(baroclinic_sims))
     drifter_ids = ref_table.index[ref_table["baroclinic_id"]==bc].tolist()
     while baroclinic_sims[bc].t < T:
         baroclinic_sims[bc].step(360)
@@ -322,44 +323,44 @@ for bc in range(len(baroclinic_sims)):
             crossprod_trajectories[d].add_observation_from_drifters(crossprod_drifters[d], baroclinic_sims[bc].t)
 
 # %%
-def plot_cp_trajectories(crossprod_trajectories, drifter_id):
-    with plt.rc_context({'lines.color':'black', 
-                            'text.color':'black', 
-                            'axes.labelcolor':'black', 
-                            'xtick.color':'black',
-                            'ytick.color':'black'}):
-        fig, ax = plt.subplots(1,1, figsize=(10,10))
-        ax.tick_params(axis='both', which='major', labelsize=28)
-        domain_extent = [0, ref_baroclinic_sim.nx*ref_baroclinic_sim.dx/1000, 0, ref_baroclinic_sim.ny*ref_baroclinic_sim.dy/1000]
+# def plot_cp_trajectories(crossprod_trajectories, drifter_id):
+#     with plt.rc_context({'lines.color':'black', 
+#                             'text.color':'black', 
+#                             'axes.labelcolor':'black', 
+#                             'xtick.color':'black',
+#                             'ytick.color':'black'}):
+#         fig, ax = plt.subplots(1,1, figsize=(10,10))
+#         ax.tick_params(axis='both', which='major', labelsize=28)
+#         domain_extent = [0, ref_baroclinic_sim.nx*ref_baroclinic_sim.dx/1000, 0, ref_baroclinic_sim.ny*ref_baroclinic_sim.dy/1000]
 
-        bg_cmap = copy.deepcopy(plt.cm.Blues)
-        bg_cmap.set_bad("grey", alpha = 1.0)
+#         bg_cmap = copy.deepcopy(plt.cm.Blues)
+#         bg_cmap.set_bad("grey", alpha = 1.0)
 
-        ax.imshow(baroclinic_sims[0].download()[0] > -10, interpolation="none", origin='lower', 
-                        cmap=bg_cmap,  
-                        extent=domain_extent)
+#         ax.imshow(baroclinic_sims[0].download()[0] > -10, interpolation="none", origin='lower', 
+#                         cmap=bg_cmap,  
+#                         extent=domain_extent)
 
-        path = crossprod_trajectories[0].get_drifter_path(drifter_id, 0, T, in_km = True)[0]
-        start_pos = path[0,:]
-        circ_start = matplotlib.patches.Circle((start_pos[0], start_pos[1]), 
-                                                0.01, color = 'black', fill=True, zorder=10)
-        ax.add_patch(circ_start)
+#         path = crossprod_trajectories[0].get_drifter_path(drifter_id, 0, T, in_km = True)[0]
+#         start_pos = path[0,:]
+#         circ_start = matplotlib.patches.Circle((start_pos[0], start_pos[1]), 
+#                                                 0.01, color = 'black', fill=True, zorder=10)
+#         ax.add_patch(circ_start)
 
-        for path in [t.get_drifter_path(drifter_id, 0, T, in_km = True)[0] for t in crossprod_trajectories]:
+#         for path in [t.get_drifter_path(drifter_id, 0, T, in_km = True)[0] for t in crossprod_trajectories]:
             
-            ax.plot(path[:,0], path[:,1], color="C0", ls="-", zorder=5, alpha=0.1)
+#             ax.plot(path[:,0], path[:,1], color="C0", ls="-", zorder=5, alpha=0.1)
             
-            end_pos = path[-1,:]
-            ax.scatter(end_pos[0], end_pos[1], marker='x', color='black', s=100, linewidths=2, alpha=0.5)
+#             end_pos = path[-1,:]
+#             ax.scatter(end_pos[0], end_pos[1], marker='x', color='black', s=100, linewidths=2, alpha=0.5)
 
-        plt.tight_layout()
+#         plt.tight_layout()
 
-        plt.savefig("figs/"+timestamp+"/CPdrift"+str(drifter_id)+".pdf", bbox_inches="tight")
+#         plt.savefig("figs/"+timestamp+"/CPdrift"+str(drifter_id)+".pdf", bbox_inches="tight")
 
 # %%
 for cp in range(len(crossprod_trajectories)):
-    crossprod_trajectories[cp].to_pickle("pickles/"+timestamp+"/cp_trajectory"+str(cp))
+    crossprod_trajectories[cp].to_pickle("pickles/"+timestamp+"/bc_trajectory"+str(cp))
 
-# %%
-for drifter_id in range(num_drifters):
-    plot_cp_trajectories(crossprod_trajectories, drifter_id)
+# # %%
+# for drifter_id in range(num_drifters):
+#     plot_cp_trajectories(crossprod_trajectories, drifter_id)

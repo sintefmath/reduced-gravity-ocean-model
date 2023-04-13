@@ -1,8 +1,8 @@
 # %% [markdown]
 # ```
-# This notebook sets up and runs a test case for analyzing Kelvin waves
-# Copyright (C) 2018 - 2022 SINTEF Digital
-# Copyright (C) 2018 - 2022 Norwegian Meteorological Institute
+# This script runs the 6h simulations to caluclate wall time expenses
+# Copyright (C) 2022 - 2023 SINTEF Digital
+# Copyright (C) 2022 - 2023 Norwegian Meteorological Institute
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
