@@ -139,4 +139,4 @@ old/
 *.png
 *.mp4
 *.txt
-pickles/
+*pickles/
