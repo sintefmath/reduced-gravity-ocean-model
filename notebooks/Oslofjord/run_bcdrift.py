@@ -91,7 +91,7 @@ x0, x1, y0, y1 = 5, dimX-5, 175, dimY-5
 # Simulation span: 6h!
 
 # %%
-t_start = 5*24# +20
+t_start = 5*24 +20
 t_stop =  t_start + 6
 
 T = (t_stop-t_start)*3600  #Input
@@ -102,49 +102,28 @@ timestep_indices = [list(np.arange(t_start, t_stop+1))]
 
 # %%
 from gpuocean.utils import WindStress
+def rotate_wind_field(wind, angle, plot=False):
+    radians = (angle/360)*2*np.pi
+    wind_u = wind.wind_u.copy()
+    wind_v = wind.wind_v.copy()
+    t = wind.t.copy()
+    #print(t)
 
-def generate_wind_field(wind_angle_deg, t_start_index, T):
-    """Generating WindStress object with spatially constant, hourly varying wind 
-    according to the standard shape in Oslofjord (see Oslofjord-ArtificialParameters.ipynb)
-    
-    wind_angle_deg - angle of wind field towards north in degree!
-    t_start_index  - index for the time when generated wind field is supposed to start
-    T              - time span for which the wind field is generated in seconds
-    """
+    c = np.cos(radians)
+    s = np.sin(radians)
+    wind_u_new = wind_u * c - wind_v * s
+    wind_v_new = wind_u * s + wind_v * c
 
-    wind_angle = np.deg2rad(wind_angle_deg)
+    if plot:
+        x0, x1 = 200, 220
+        y0, y1 = 200, 220
 
-    # Reference wind speed for 0 - 24h 
-    wind_u_ref = np.zeros(24)
-    wind_u_ref[:10] = -0.5*(np.sin(2*np.pi*(np.arange(0,10)-2.5)/10)+1)
-    wind_u_ref[10:] = 5*(np.sin(2*np.pi*(np.arange(10,24)+0.5)/14)+1)
+        fig = plt.figure()
+        plt.quiver(wind_u[3, y0:y1, x0:x1], wind_v[3, y0:y1, x0:x1])
 
-    # Wind fields for 0 - 24h
-    wind_u = list(np.cos(wind_angle)*wind_u_ref[:,np.newaxis][:,np.newaxis].astype(np.float32))
-    wind_v = list(np.sin(wind_angle)*wind_u_ref[:,np.newaxis][:,np.newaxis].astype(np.float32))
-
-    # Shifting that reference hours align with t_0
-    shift = datetime.datetime.utcfromtimestamp(nc["ocean_time"][t_start_index]).hour
-    for shift_hour in range(shift):
-        wind_u.append(wind_u.pop(0))
-        wind_v.append(wind_v.pop(0))
-
-    # Repeat for several days if necessary
-    wind_u = wind_u * int(np.ceil((T/3600+1)/24))
-    wind_v = wind_v * int(np.ceil((T/3600+1)/24))
-
-    # Cut relevant time span
-    wind_u = wind_u[0:int(T/3600+1)]
-    wind_v = wind_v[0:int(T/3600 +1)]
-
-    # Construct time array in simulator time (starting with 0)
-    ts = np.arange(T+1, step=3600)
-
-    # Init WindStress object
-    wind = WindStress.WindStress(t=ts, wind_u=wind_v, wind_v=wind_u)
-    wind.compute_wind_stress_from_wind()
-
-    return wind 
+        fig = plt.figure()
+        plt.quiver(wind_u_new[3, y0:y1, x0:x1], wind_v_new[3, y0:y1, x0:x1])
+    return WindStress.WindStress(t=t, wind_u=wind_u_new, wind_v=wind_v_new)
 
 # %% [markdown]
 # #### Baroclinic Simulations
@@ -153,8 +132,13 @@ def generate_wind_field(wind_angle_deg, t_start_index, T):
 _, ref_baroclinic_data_args = NetCDFInitialization.getCombinedInitialConditions(source_url, x0, x1, y0, y1, 1024.0, timestep_indices=timestep_indices, norkyst_data=False, land_value=0.0, download_data=False)
 
 # %%
-ref_baroclinic_data_args["wind"] = generate_wind_field(45.0, t_start, T)
-ref_baroclinic_data_args["wind_stress_factor"] = 0.3
+ref_wind = ref_baroclinic_data_args["wind"]
+ref_wind.wind_u[ref_wind.wind_u > 1e3] = 0.0
+ref_wind.wind_v[ref_wind.wind_v > 1e3] = 0.0
+ref_wind.compute_wind_stress_from_wind()
+
+ref_baroclinic_data_args["wind"] = ref_wind
+ref_baroclinic_data_args["wind_stress_factor"] = 0.5
 
 # %%
 ref_baroclinic_sim = CDKLM16.CDKLM16(baroclinic_gpu_ctx, **NetCDFInitialization.removeMetadata(ref_baroclinic_data_args), dt=0.0, write_netcdf=True)
@@ -171,11 +155,11 @@ for runt in range(int(T/subt)):
 import pandas as pd 
 
 # %%
-baroclinic_wind_angles_degs = 45 + np.random.normal(0, 10, 5) # np.arange(35, 56, 2.5) # np.random.uniform(35, 55, 10)
-baroclinic_wind_samples = [None]*len(baroclinic_wind_angles_degs)
+baroclinic_wind_rotation_degs = np.random.normal(0, 10, 5)
+baroclinic_wind_samples = [None]*len(baroclinic_wind_rotation_degs)
 
-for i in range(len(baroclinic_wind_angles_degs)):
-    baroclinic_wind_samples[i] = generate_wind_field(baroclinic_wind_angles_degs[i], t_start, T)
+for i in range(len(baroclinic_wind_rotation_degs)):
+    baroclinic_wind_samples[i] = rotate_wind_field(ref_wind, baroclinic_wind_rotation_degs[i])
 
 # %%
 # Mixed layer depth (MLD) 
@@ -190,7 +174,7 @@ for i in range(len(mld_dens_samples)):
 
 
 # %%
-wind_stress_samples =  np.arange(0.1, 0.71, 0.2) # np.random.uniform(0.1, 0.5, 5) #
+wind_stress_samples =  np.arange(0.5, 0.91, 0.2) # np.random.uniform(0.1, 0.5, 5) #
 
 # %%
 friction_samples =  np.arange(0, 0.0051, 0.001) # np.random.uniform(0, 0.005, 5) #
@@ -206,7 +190,7 @@ file.write("Baroclinic simulations:\n")
 file.write("MLD: " + ", ".join([str(v) for v in mld_dens_samples])+"\n")
 file.write("friction: " + ", ".join([str(v) for v in friction_samples])+"\n")
 file.write("wind stress: " + ", ".join([str(v) for v in wind_stress_samples])+"\n")
-file.write("wind: " + ", ".join([str(v) for v in baroclinic_wind_angles_degs])+"\n")
+file.write("wind: " + ", ".join([str(v) for v in baroclinic_wind_rotation_degs])+"\n")
 file.write("\n")
 file.write("Drifter advection:\n")
 file.write("windage: " + ", ".join([str(v) for v in windage_samples])+"\n")
