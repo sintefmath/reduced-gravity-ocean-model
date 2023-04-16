@@ -277,7 +277,7 @@ for i in range(len(mld_dens_samples)):
 
 
 # %%
-wind_stress_samples = np.arange(0.1, 0.61, 0.25)
+wind_stress_samples = np.arange(0.4, 0.91, 0.25)
 
 # %%
 friction_samples = np.arange(0, 0.0051, 0.0025)
