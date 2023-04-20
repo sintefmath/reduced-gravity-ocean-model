@@ -76,12 +76,6 @@ ds = xr.open_dataset(source_url)
 ds
 
 # %% [markdown]
-# Animation utils
-
-# %%
-import animation_utils
-
-# %% [markdown]
 # ## Generating GPUOcean Simulation from Input
 
 # %% [markdown]
@@ -155,7 +149,7 @@ for runt in range(int(T/subt)):
 # %%
 ref_wind = ref_barotropic_data_args["wind"]
 
-barotropic_wind_directions = np.random.normal(0, 15, 5) #np.arange(-20, 21, 5)
+barotropic_wind_directions = np.array([-10,-5,0,5,10]) # np.random.normal(0, 15, 5) #np.arange(-20, 21, 5)
 barotropic_wind_samples = [None]*len(barotropic_wind_directions)
 print(barotropic_wind_directions)
 for i in range(len(barotropic_wind_directions)):
@@ -198,7 +192,7 @@ bt_table.head()
 # Creating drifters
 
 # %%
-windage_samples = np.maximum(0, np.random.normal(0.03, 0.015, 10)) #np.arange(0.0, 0.051, 0.005)
+windage_samples = np.array([0.03275772649313289, 0.036538865092169207, 0.014530555906561415, 0.031149217005290726, 0.0019454308392691487, 0.03615934828448532, 0.044317464017243464, 0.04610899216621601, 0.023221881093816385, 0.01649549488869334]) #np.maximum(0, np.random.normal(0.03, 0.015, 10)) #np.arange(0.0, 0.051, 0.005)
 
 # %%
 file = open("barents_figs/"+timestamp+"/log.txt", 'w')
