@@ -155,7 +155,7 @@ for runt in range(int(T/subt)):
 import pandas as pd 
 
 # %%
-baroclinic_wind_rotation_degs = np.random.normal(0, 10, 5)
+baroclinic_wind_rotation_degs = np.array([-10,-5,0,5,10]) #np.random.normal(0, 10, 5)
 baroclinic_wind_samples = [None]*len(baroclinic_wind_rotation_degs)
 
 for i in range(len(baroclinic_wind_rotation_degs)):
@@ -164,7 +164,7 @@ for i in range(len(baroclinic_wind_rotation_degs)):
 # %%
 # Mixed layer depth (MLD) 
 # Can be explored coupled or decoupled with the reduced gravity constant
-mld_dens_samples = np.arange(1022.5, 1024.6, 1.0) # np.random.uniform(1022.5, 1024.5, 5)
+mld_dens_samples = np.arange(1022.5, 1024.6, 0.25)
 mld_samples_data_args = [None]*len(mld_dens_samples)
 
 for i in range(len(mld_dens_samples)):
@@ -173,61 +173,62 @@ for i in range(len(mld_dens_samples)):
     print(mld_samples_data_args[i]["g"])
 
 
-# %%
-wind_stress_samples =  np.arange(0.5, 0.91, 0.2) # np.random.uniform(0.1, 0.5, 5) #
+# %% [markdown]
+# #### Creating simulators
+
+# %% 
+sims_per_wind = 36
 
 # %%
-friction_samples =  np.arange(0, 0.0051, 0.001) # np.random.uniform(0, 0.005, 5) #
+baroclinic_sims = []
+bc_table = pd.DataFrame(columns=["baroclinic_id", "wind_angle_id", "wind_stress_factor", "friction", "mld"]).set_index("baroclinic_id")
+
+for i_w in range(len(baroclinic_wind_samples)):
+    mld_idxs = np.random.randint(low=0, high=len(mld_dens_samples), size=sims_per_wind)
+    wind_stress_samples = np.minimum(np.maximum(0, np.random.normal(0.35,0.2, size=sims_per_wind)), 1)
+    friction_samples = np.maximum(0, np.random.normal(0.0025,0.001, size=sims_per_wind))
+    for i_other in range(sims_per_wind):
+        baroclinic_data_args = copy.copy(mld_samples_data_args[mld_idxs[i_other]])
+        baroclinic_data_args["wind"] = baroclinic_wind_samples[i_w]
+        baroclinic_data_args["wind_stress_factor"] = wind_stress_samples[i_other]
+        baroclinic_data_args["r"] = friction_samples[i_other]
+
+        baroclinic_sims.append( CDKLM16.CDKLM16(baroclinic_gpu_ctx, **NetCDFInitialization.removeMetadata(baroclinic_data_args),  dt=0.0))
+        
+        bc_table.loc[len(bc_table.index)] = [i_w, wind_stress_samples[i_other], friction_samples[i_other], mld_idxs[i_other]]
+
+bc_table["wind_angle_id"] = bc_table["wind_angle_id"].astype(int)
 
 # %%
-windage_samples = np.maximum(0, np.random.normal(0.03, 0.015, 10)) # np.arange(0.0, 0.051, 0.005) # np.random.uniform(0, 0.03, 10) #
+bc_table
+
+# %% 
+windage_samples_per_sim = 10
+
+# %%
+ref_table = pd.DataFrame(columns=["drifter_id", "baroclinic_id", "windage"]).set_index("drifter_id")
+
+for bc in range(len(baroclinic_sims)):
+    for i_windage in range(windage_samples_per_sim):
+        windage_samples = np.maximum(0, np.random.normal(0.03, 0.015, size=windage_samples_per_sim))
+        ref_table.loc[len(ref_table.index)] = [bc, windage_samples[i_windage]]
+
+ref_table["baroclinic_id"] = ref_table["baroclinic_id"].astype(int)
+
+#%%
+ref_table
 
 # %% 
 file = open("figs/"+timestamp+"/log.txt", 'w')
 file.write("CROSS PRODUCT SIMULATION\n")
 file.write("\n")
 file.write("Baroclinic simulations:\n")
-file.write("MLD: " + ", ".join([str(v) for v in mld_dens_samples])+"\n")
-file.write("friction: " + ", ".join([str(v) for v in friction_samples])+"\n")
-file.write("wind stress: " + ", ".join([str(v) for v in wind_stress_samples])+"\n")
 file.write("wind: " + ", ".join([str(v) for v in baroclinic_wind_rotation_degs])+"\n")
+file.write("samples per wind: " + str(sims_per_wind) + "\n")
 file.write("\n")
 file.write("Drifter advection:\n")
-file.write("windage: " + ", ".join([str(v) for v in windage_samples])+"\n")
+file.write("windage samples per sim: " + str(windage_samples_per_sim)+"\n")
 file.close()
-
-# %% [markdown]
-# #### Creating simulators
-
-# %%
-baroclinic_sims = []
-bc_table = pd.DataFrame(columns=["baroclinic_id", "wind_angle_id", "wind_stress_factor_id", "friction_id", "mld_id"]).set_index("baroclinic_id")
-
-for i_w in range(len(baroclinic_wind_samples)):
-    for i_ws in range(len(wind_stress_samples)):
-        for i_f in range(len(friction_samples)):
-            for i_mld in range(len(mld_samples_data_args)):
-                baroclinic_data_args = copy.copy(mld_samples_data_args[i_mld])
-                baroclinic_data_args["wind"] = baroclinic_wind_samples[i_w]
-                baroclinic_data_args["wind_stress_factor"] = wind_stress_samples[i_ws]
-                baroclinic_data_args["r"] = friction_samples[i_f]
-
-                baroclinic_sims.append( CDKLM16.CDKLM16(baroclinic_gpu_ctx, **NetCDFInitialization.removeMetadata(baroclinic_data_args),  dt=0.0))
-                
-                bc_table.loc[len(bc_table.index)] = [i_w, i_ws, i_f, i_mld]
-
-# %%
-bc_table
-
-# %%
-ref_table = pd.DataFrame(columns=["drifter_id", "baroclinic_id", "windage_id"]).set_index("drifter_id")
-
-
-for bc in range(len(baroclinic_sims)):
-    for windage in range(len(windage_samples)):
-        ref_table.loc[len(ref_table.index)] = [bc, windage]
-
-ref_table
 
 # %% [markdown]
 # Collecting drifter and observation objects
@@ -270,13 +271,15 @@ for cp in range(len(ref_table)):
                                                     domain_size_x = trajectories.domain_size_x,
                                                     domain_size_y = trajectories.domain_size_y,
                                                     gpu_stream = ref_baroclinic_sim.gpu_stream, # Get re-set in attachment to simulation!
-                                                    wind = baroclinic_wind_samples[bc_table.iloc[ref_table.iloc[cp].baroclinic_id].wind_angle_id], #wind = ref_baroclinic_data_args["wind"],
-                                                    wind_drift_factor = windage_samples[ref_table.iloc[cp].windage_id]
+                                                    wind = baroclinic_wind_samples[bc_table.wind_angle_id.iloc[ref_table.baroclinic_id.iloc[cp]]], #wind = ref_baroclinic_data_args["wind"],
+                                                    wind_drift_factor = ref_table.iloc[cp].windage
                                                     )           
 
     drifter_pos_init = np.array([initx, inity]).T
     drifters.setDrifterPositions(drifter_pos_init)
     crossprod_drifters.append(drifters)
+
+
 
 # %% [markdown]
 # Attach CPdrifters
