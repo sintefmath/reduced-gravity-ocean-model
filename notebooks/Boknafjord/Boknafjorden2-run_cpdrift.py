@@ -227,15 +227,15 @@ def rotate_wind_field(wind, angle, plot=False):
        
 
 # %%
-wind_directions = np.random.normal(0, 10, 5) #np.arange(-15, 16, 5)
-print(wind_directions)
+# wind_directions = np.random.normal(0, 10, 5) #np.arange(-15, 16, 5)
+# print(wind_directions)
 
-wind_samples = [None]*len(wind_directions)
-for i in range(len(wind_directions)):
-    wind_samples[i] = rotate_wind_field(ref_baroclinic_data_args["wind"], wind_directions[i])
+# wind_samples = [None]*len(wind_directions)
+# for i in range(len(wind_directions)):
+#     wind_samples[i] = rotate_wind_field(ref_baroclinic_data_args["wind"], wind_directions[i])
 
 # %%
-barotropic_wind_directions = np.random.normal(0, 10, 5) #np.arange(-15, 16, 5)
+barotropic_wind_directions = np.array([-10,-5,0,5,10])#np.array([15.20564991, -4.48302138,  1.57755535,  4.63672119, -3.08141148]) #TEMP np.random.normal(0, 10, 5) #np.arange(-15, 16, 5)
 print(barotropic_wind_directions)
 
 barotropic_wind_samples = [None]*len(barotropic_wind_directions)
@@ -243,7 +243,7 @@ for i in range(len(barotropic_wind_directions)):
     barotropic_wind_samples[i] = rotate_wind_field(ref_baroclinic_data_args["wind"], barotropic_wind_directions[i])
 
 # %%
-baroclinic_wind_directions = np.random.normal(0, 10, 5) #np.arange(-15, 16, 15)
+baroclinic_wind_directions = np.array([-10,-5,0,5,10])#np.array([ -9.48045535,  14.23118069,  -0.9100276 ,   6.52690427, -10.57726405]) #TEMP np.random.normal(0, 10, 5) #np.arange(-15, 16, 15)
 print(baroclinic_wind_directions)
 
 baroclinic_wind_samples = [None]*len(baroclinic_wind_directions)
@@ -267,7 +267,7 @@ for i in range(len(barotropic_shift_times)):
 # %%
 # Mixed layer depth (MLD) 
 # Can be explored coupled or decoupled with the reduced gravity constant
-mld_dens_samples = np.arange(1022.75, 1023.51, 0.25)
+mld_dens_samples = np.arange(1022.75, 1023.51, 0.1)
 mld_samples_data_args = [None]*len(mld_dens_samples)
 
 for i in range(len(mld_dens_samples)):
@@ -276,31 +276,11 @@ for i in range(len(mld_dens_samples)):
     print(mld_samples_data_args[i]["g"])
 
 
-# %%
-wind_stress_samples = np.arange(0.4, 0.91, 0.25)
+
 
 # %%
-friction_samples = np.arange(0, 0.0051, 0.0025)
+# windage_samples = np.maximum(0, np.random.normal(0.03, 0.015, 1)) #TEMP np.maximum(0, np.random.normal(0.03, 0.015, 10)) #np.arange(0.0, 0.051, 0.005)
 
-# %%
-windage_samples = np.maximum(0, np.random.normal(0.03, 0.015, 10)) #np.arange(0.0, 0.051, 0.005)
-
-# %% 
-file = open("bokna_figs/"+timestamp+"/log.txt", 'w')
-file.write("CROSS PRODUCT SIMULATION\n")
-file.write("\n")
-file.write("Barotropic simulations:\n")
-file.write("wind: " + ", ".join([str(v) for v in barotropic_wind_directions])+"\n")
-file.write("\n")
-file.write("Baroclinic simulations:\n")
-file.write("MLD: " + ", ".join([str(v) for v in mld_dens_samples])+"\n")
-file.write("friction: " + ", ".join([str(v) for v in friction_samples])+"\n")
-file.write("wind stress: " + ", ".join([str(v) for v in wind_stress_samples])+"\n")
-file.write("wind: " + ", ".join([str(v) for v in baroclinic_wind_directions])+"\n")
-file.write("\n")
-file.write("Drifter advection:\n")
-file.write("windage: " + ", ".join([str(v) for v in windage_samples])+"\n")
-file.close()
 
 # %% [markdown]
 # Generate all contextes
@@ -329,36 +309,64 @@ for i_w in range(len(barotropic_wind_samples)):
 
         bt_table.loc[len(bt_table)] = [i_w, i_t]
 
+# %% 
+baroclinic_sims_per_wind = 36
+
 # %%
 baroclinic_sims = []
-bc_table = pd.DataFrame(columns=["baroclinic_id", "wind_rotation_id", "wind_stress_factor_id", "friction_id", "mld_id"]).set_index("baroclinic_id")
+bc_table = pd.DataFrame(columns=["baroclinic_id", "wind_rotation_id", "wind_stress_factor", "friction", "mld"]).set_index("baroclinic_id")
 
 for i_w in range(len(baroclinic_wind_samples)):
-    for i_ws in range(len(wind_stress_samples)):
-        for i_f in range(len(friction_samples)):
-            for i_mld in range(len(mld_samples_data_args)):
-                baroclinic_data_args = copy.copy(mld_samples_data_args[i_mld])
-                baroclinic_data_args["wind"] = baroclinic_wind_samples[i_w]
-                baroclinic_data_args["wind_stress_factor"] = wind_stress_samples[i_ws]
-                baroclinic_data_args["r"] = friction_samples[i_f]
+    mld_idxs = np.random.randint(low=0, high=len(mld_dens_samples), size=baroclinic_sims_per_wind)
+    wind_stress_samples = np.minimum(np.maximum(0, np.random.normal(0.35,0.25, size=baroclinic_sims_per_wind)), 0.7)
+    friction_samples = np.maximum(0, np.random.normal(0.0025,0.001, size=baroclinic_sims_per_wind))
+    for i_other in range(baroclinic_sims_per_wind):
+        baroclinic_data_args = copy.copy(mld_samples_data_args[mld_idxs[i_other]])
+        baroclinic_data_args["wind"] = baroclinic_wind_samples[i_w]
+        baroclinic_data_args["wind_stress_factor"] = wind_stress_samples[i_other]
+        baroclinic_data_args["r"] = friction_samples[i_other]
 
-                baroclinic_sims.append( CDKLM16.CDKLM16(bc_gpu_ctxs[i_w], **NetCDFInitialization.removeMetadata(baroclinic_data_args),  dt=0.0))
-                
-                bc_table.loc[len(bc_table.index)] = [i_w, i_ws, i_f, i_mld]
+        baroclinic_sims.append( CDKLM16.CDKLM16(bc_gpu_ctxs[i_w], **NetCDFInitialization.removeMetadata(baroclinic_data_args),  dt=0.0))
+        
+        bc_table.loc[len(bc_table.index)] = [i_w, wind_stress_samples[i_other], friction_samples[i_other], mld_idxs[i_other]]
 
+bc_table["wind_rotation_id"] = bc_table["wind_rotation_id"].astype(int)
 
 # %% [markdown]
 # #### Cross Product Table 
 
+#%%
+windage_samples_per_sim = 10
+
 # %%
-ref_table = pd.DataFrame(columns=["drifter_id", "barotropic_id", "baroclinic_id", "windage_id"]).set_index("drifter_id")
+ref_table = pd.DataFrame(columns=["drifter_id", "barotropic_id", "baroclinic_id", "windage"]).set_index("drifter_id")
 
 # %%
 for bt in range(len(barotropic_sims)):
     for bc in range(len(baroclinic_sims)):
-        for windage in range(len(windage_samples)):
-            ref_table.loc[len(ref_table.index)] = [bt, bc, windage]
+        windage_samples = np.maximum(0, np.random.normal(0.03, 0.015, size=windage_samples_per_sim))
+        for i_windage in range(windage_samples_per_sim):
+            ref_table.loc[len(ref_table.index)] = [bt, bc, windage_samples[i_windage]]
 
+ref_table["baroclinic_id"] = ref_table["baroclinic_id"].astype(int)
+ref_table["barotropic_id"] = ref_table["barotropic_id"].astype(int)
+
+# %% 
+file = open("bokna_figs/"+timestamp+"/log.txt", 'w')
+file.write("CROSS PRODUCT SIMULATION\n")
+file.write("\n")
+file.write("Barotropic simulations:\n")
+file.write("wind: " + ", ".join([str(v) for v in barotropic_wind_directions])+"\n")
+file.write("shifted init: " + ", ".join([str(v) for v in barotropic_shift_times]) + "\n")
+file.write("\n")
+file.write("Baroclinic simulations:\n")
+file.write("wind: " + ", ".join([str(v) for v in baroclinic_wind_directions])+"\n")
+file.write("simulation samples per wind: " + str(baroclinic_sims_per_wind)+"\n")
+
+file.write("\n")
+file.write("Drifter advection:\n")
+file.write("windage samples per simulation: " + str(windage_samples_per_sim)+"\n")
+file.close()
 
 
 # %% [markdown]
@@ -390,14 +398,14 @@ for cp in range(len(ref_table)):
 # %%
 crossprod_drifters = []
 for cp in range(len(ref_table)): 
-    drifters = GPUDrifterCollection.GPUDrifterCollection(bt_gpu_ctxs[bt_table.iloc[ref_table.iloc[cp].barotropic_id].wind_rotation_id], # OBS: This is used for wind drift! 
+    drifters = GPUDrifterCollection.GPUDrifterCollection(bt_gpu_ctxs[bt_table.wind_rotation_id.iloc[ref_table.barotropic_id.iloc[cp]]], # OBS: This is used for wind drift! 
                                                     num_drifters,
                                                     boundaryConditions = ref_barotropic_sim.boundary_conditions,
                                                     domain_size_x = trajectories.domain_size_x,
                                                     domain_size_y = trajectories.domain_size_y,
-                                                    gpu_stream = barotropic_sims[ref_table.iloc[cp].barotropic_id].gpu_stream, # OBS!
-                                                    wind = barotropic_wind_samples[bt_table.iloc[ref_table.iloc[cp].barotropic_id].wind_rotation_id],
-                                                    wind_drift_factor = windage_samples[ref_table.iloc[cp].windage_id]/2 # drift is called twice per step, but we only want one wind contribution
+                                                    gpu_stream = barotropic_sims[ref_table.barotropic_id.iloc[cp]].gpu_stream, # OBS!
+                                                    wind = barotropic_wind_samples[bt_table.wind_rotation_id.iloc[ref_table.barotropic_id.iloc[cp]]],
+                                                    wind_drift_factor = ref_table.iloc[cp].windage/2 # drift is called twice per step, but we only want one wind contribution
                                                     )           
 
     drifter_pos_init = np.array([initx, inity]).T
@@ -439,8 +447,11 @@ for d in range(len(crossprod_drifters)):
     crossprod_trajectories[d].add_observation_from_drifters(crossprod_drifters[d], bt.t)
 
 # %%
+time_file = open("bokna_figs/"+timestamp+"/time_log.txt", 'w')
+
 while bt.t < T:
     print(bt.t)
+    time_file.write(str(bt.t)+"\n")
 
     bc_dt = min([bc.dt for bc in baroclinic_sims])
     if bt.t % 3600 != 0:
@@ -459,4 +470,5 @@ while bt.t < T:
 
 # %%
 for cp in range(len(crossprod_trajectories)):
+    time_file.write(str(cp)+"\n")
     crossprod_trajectories[cp].to_pickle("bokna_pickles/"+timestamp+"/cp_trajectory"+str(cp))
