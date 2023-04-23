@@ -209,8 +209,8 @@ windage_samples_per_sim = 10
 ref_table = pd.DataFrame(columns=["drifter_id", "baroclinic_id", "windage"]).set_index("drifter_id")
 
 for bc in range(len(baroclinic_sims)):
+    windage_samples = np.maximum(0, np.random.normal(0.03, 0.015, size=windage_samples_per_sim))
     for i_windage in range(windage_samples_per_sim):
-        windage_samples = np.maximum(0, np.random.normal(0.03, 0.015, size=windage_samples_per_sim))
         ref_table.loc[len(ref_table.index)] = [bc, windage_samples[i_windage]]
 
 ref_table["baroclinic_id"] = ref_table["baroclinic_id"].astype(int)
