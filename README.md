@@ -1,11 +1,12 @@
 # reduced-gravity-ocean-model
-Notebooks for the reduced gravity ocean model based on the `metno/gpuocean` core
+Notebooks for the reduced-gravity ocean model based on the `metno/gpuocean` core
 
 ## Installation 
-Follow the instruction in the `metno/gpuocean` project, but use the herein provided `conda_env_opendrift.yml` to create the conda environment.
-
+Follow the instruction in the `metno/gpuocean` project.
 Last, to set the `$PYTHONPATH` to find the source code from the `gpuocean` repository within the environment, run the following lines 
 ```
 conda activate gpuocean_opendrift
 conda-develop /path/to/gpuocean/src
 ```
+
+For experiments involving OpenDrift, a separate conda envirnoment can be created from `conda_env_opendrift.yml`.
